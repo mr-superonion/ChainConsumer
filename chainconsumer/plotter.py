@@ -87,7 +87,8 @@ class Plotter(object):
         """
 
         chains, parameters, truth, extents, blind, log_scales = self._sanitise(
-            chains, parameters, truth, extents, color_p=True, blind=blind, log_scales=log_scales
+            chains, parameters, truth, extents, color_p=True, blind=blind,
+            log_scales=log_scales,
         )
         names = [chain.name for chain in chains]
 
@@ -132,7 +133,8 @@ class Plotter(object):
         flip = len(parameters) == 2 and plot_hists and self.parent.config["flip"]
 
         fig, axes, params1, params2, extents = self._get_figure(
-            parameters, chains=chains, figsize=figsize, flip=flip, external_extents=extents, blind=blind, log_scales=log_scales
+            parameters, chains=chains, figsize=figsize, flip=flip,
+            external_extents=extents, blind=blind, log_scales=log_scales
         )
         label_font_size = self.parent.config["label_font_size"]
 
@@ -160,7 +162,7 @@ class Plotter(object):
                 if i < j:
                     continue
                 ax = axes[i, j]
-                do_flip = flip and i == len(params1) - 1
+                do_flip = (flip and i == len(params1) - 1)
 
                 # Plot the histograms
                 if plot_hists and i == j:
@@ -470,7 +472,9 @@ class Plotter(object):
         return fig
 
     def plot_distributions(
-        self, parameters=None, truth=None, extents=None, display=False, filename=None, chains=None, col_wrap=4, figsize=None, blind=None, log_scales=None
+        self, parameters=None, truth=None, extents=None, display=False,
+        filename=None, chains=None, col_wrap=4, figsize=None, blind=None,
+        log_scales=None
     ):  # pragma: no cover
         """ Plots the 1D parameter distributions for verification purposes.
 
@@ -914,7 +918,10 @@ class Plotter(object):
                 extents[p] = self._get_parameter_extents(p, chains, wide_extents=wide_extents)
         return extents
 
-    def _get_figure(self, all_parameters, flip, figsize=(5, 5), external_extents=None, chains=None, blind=None, log_scales=None):  # pragma: no cover
+    def _get_figure(self, all_parameters, flip, figsize=(5, 5),
+                    external_extents=None, chains=None, blind=None,
+                    log_scales=None,
+                    ):  # pragma: no cover
         n = len(all_parameters)
         max_ticks = self.parent.config["max_ticks"]
         spacing = self.parent.config["spacing"]
@@ -958,9 +965,8 @@ class Plotter(object):
                 formatter_y = ScalarFormatter(useOffset=True)
                 formatter_y.set_powerlimits((-3, 4))
 
-                display_x_ticks = False
-                display_y_ticks = False
                 if i < j:
+                    # only the left corner
                     ax.set_frame_on(False)
                     ax.set_xticks([])
                     ax.set_yticks([])
@@ -982,50 +988,37 @@ class Plotter(object):
                         if log_scales.get(p2):
                             ax.set_xscale("log")
                             logx = True
-                    if i != n - 1 or (flip and j == n - 1):
-                        ax.set_xticks([])
-                    else:
-                        if p2 in blind:
-                            ax.set_xticks([])
-                        else:
-                            display_x_ticks = True
+
+                    if not(i != n - 1 or (flip and j == n - 1)):
                         if isinstance(p2, str):
                             ax.set_xlabel(p2, fontsize=label_font_size)
-                    if j != 0 or (plot_hists and i == 0):
-                        ax.set_yticks([])
-                    else:
-                        if p1 in blind:
-                            ax.set_yticks([])
-                        else:
-                            display_y_ticks = True
+                    if not(j != 0 or (plot_hists and i == 0)):
                         if isinstance(p1, str):
                             ax.set_ylabel(p1, fontsize=label_font_size)
-                    if display_x_ticks:
-                        if diagonal_tick_labels:
-                            _ = [l.set_rotation(45) for l in ax.get_xticklabels()]
-                        _ = [l.set_fontsize(tick_font_size) for l in ax.get_xticklabels()]
-                        if not logx:
-                            ax.xaxis.set_major_locator(MaxNLocator(max_ticks, prune="lower"))
-                            ax.xaxis.set_major_formatter(formatter_x)
-                        else:
-                            ax.xaxis.set_major_locator(LogLocator(numticks=max_ticks))
+                    if diagonal_tick_labels:
+                        _ = [l.set_rotation(45) for l in ax.get_xticklabels()]
+                    _ = [l.set_fontsize(tick_font_size) for l in ax.get_xticklabels()]
+                    if not logx:
+                        ax.xaxis.set_major_locator(MaxNLocator(max_ticks, prune="lower"))
+                        ax.xaxis.set_major_formatter(formatter_x)
                     else:
-                        ax.set_xticks([])
-                    if display_y_ticks:
-                        if diagonal_tick_labels:
-                            _ = [l.set_rotation(45) for l in ax.get_yticklabels()]
-                        _ = [l.set_fontsize(tick_font_size) for l in ax.get_yticklabels()]
-                        if not logy:
-                            ax.yaxis.set_major_locator(MaxNLocator(max_ticks, prune="lower"))
-                            ax.yaxis.set_major_formatter(formatter_y)
-                        else:
-                            ax.yaxis.set_major_locator(LogLocator(numticks=max_ticks))
+                        ax.xaxis.set_major_locator(LogLocator(numticks=max_ticks))
+
+                    if diagonal_tick_labels:
+                        _ = [l.set_rotation(45) for l in ax.get_yticklabels()]
+                    _ = [l.set_fontsize(tick_font_size) for l in ax.get_yticklabels()]
+                    if not logy:
+                        ax.yaxis.set_major_locator(MaxNLocator(max_ticks, prune="lower"))
+                        ax.yaxis.set_major_formatter(formatter_y)
                     else:
-                        ax.set_yticks([])
+                        ax.yaxis.set_major_locator(LogLocator(numticks=max_ticks))
+
                     if i != j or not plot_hists:
                         ax.set_ylim(extents[p1])
                     elif flip and i == 1:
                         ax.set_ylim(extents[p1])
+                    else:
+                        ax.set_yticks([])
                     ax.set_xlim(extents[p2])
 
         return fig, axes, params1, params2, extents
@@ -1182,8 +1175,13 @@ class Plotter(object):
                 h = None
 
         if shade and shade_alpha > 0:
-            ax.contourf(x_centers, y_centers, vals, levels=levels, colors=colours, alpha=shade_alpha, zorder=zorder)
-        con = ax.contour(x_centers, y_centers, vals, levels=levels, colors=colours2, linestyles=linestyle, linewidths=linewidth, zorder=zorder)
+            ax.contourf(x_centers, y_centers, vals, levels=levels,
+                        colors=colours, alpha=shade_alpha, zorder=zorder,
+                        )
+        con = ax.contour(x_centers, y_centers, vals, levels=levels,
+                         colors=colours2, linestyles=linestyle,
+                         linewidths=linewidth, zorder=zorder,
+                         )
 
         if contour_labels is not None:
             lvls = [l for l in con.levels if l != 0.0]
