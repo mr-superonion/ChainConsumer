@@ -989,12 +989,20 @@ class Plotter(object):
                             ax.set_xscale("log")
                             logx = True
 
+                    has_x_ticklabel = False
+                    has_y_ticklabel = False
                     if not(i != n - 1 or (flip and j == n - 1)):
                         if isinstance(p2, str):
                             ax.set_xlabel(p2, fontsize=label_font_size)
+                        has_x_ticklabel = True
                     if not(j != 0 or (plot_hists and i == 0)):
                         if isinstance(p1, str):
                             ax.set_ylabel(p1, fontsize=label_font_size)
+                        has_y_ticklabel = True
+                    if not has_x_ticklabel:
+                        ax.set_xticklabels([], color='w')
+                    if not has_y_ticklabel:
+                        ax.set_yticklabels([], color='w')
                     if diagonal_tick_labels:
                         _ = [l.set_rotation(45) for l in ax.get_xticklabels()]
                     _ = [l.set_fontsize(tick_font_size) for l in ax.get_xticklabels()]
