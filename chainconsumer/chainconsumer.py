@@ -15,7 +15,7 @@ __all__ = ["ChainConsumer"]
 
 
 class ChainConsumer(object):
-    """ A class for consuming chains produced by an MCMC walk. Or grid searches. To make plots, 
+    """ A class for consuming chains produced by an MCMC walk. Or grid searches. To make plots,
     figures, tables, diagnostics, you name it.
 
     """
@@ -126,7 +126,7 @@ class ChainConsumer(object):
             for plotting, but required if loading in multiple chains to perform model comparison.
         num_free_params : int, optional
             The number of degrees of freedom in your model. Not required for plotting, but required if
-            loading in multiple chains to perform model comparison.    
+            loading in multiple chains to perform model comparison.
         color : str(hex), optional
             Provide a colour for the chain. Can be used instead of calling `configure` for convenience.
         linewidth : float, optional
@@ -173,10 +173,10 @@ class ChainConsumer(object):
             of bins to the given value. Giving a float will scale the number of bins, such
             that giving ``bins=1.5`` will result in using :math:`\frac{1.5\sqrt{n}}{10}` bins.
             Note this parameter is most useful if `kde=False` is also passed, so you
-            can actually see the bins and not a KDE.        smooth : 
+            can actually see the bins and not a KDE.        smooth :
         color_params : str, optional
             The name of the parameter to use for the colour scatter. Defaults to none, for no colour. If set
-            to 'weights', 'log_weights', or 'posterior' (without the quotes), and that is not a parameter in the chain, 
+            to 'weights', 'log_weights', or 'posterior' (without the quotes), and that is not a parameter in the chain,
             it will respectively  use the weights, log weights, or posterior, to colour the points.
         plot_color_params : bool, optional
             Whether or not the colour parameter should also be plotted as a posterior surface.
@@ -190,8 +190,9 @@ class ChainConsumer(object):
         zorder : int, optional
             The zorder to pass to `matplotlib` when plotting to determine visual order in the plot.
         shift_params : dict|list, optional
-            Shifts the parameters specify to the numeric values. Useful to shift contours to the same location to perform blinded
-            uncertainty comparisons.
+            Shifts the parameters specify to the numeric values. Useful to
+            shift contours to the same location to perform blinded uncertainty
+            comparisons.
         Returns
         -------
         ChainConsumer
@@ -565,7 +566,7 @@ class ChainConsumer(object):
             to colour scatter. Defaults to 15k per chain.
         color_params : str|list[str], optional
             The name of the parameter to use for the colour scatter. Defaults to none, for no colour. If set
-            to 'weights', 'log_weights', or 'posterior' (without the quotes), and that is not a parameter in the chain, 
+            to 'weights', 'log_weights', or 'posterior' (without the quotes), and that is not a parameter in the chain,
             it will respectively  use the weights, log weights, or posterior, to colour the points.
         plot_color_params : bool|list[bool], optional
             Whether or not the colour parameter should also be plotted as a posterior surface.
@@ -581,7 +582,7 @@ class ChainConsumer(object):
         show_as_1d_prior : bool|list[bool], optional
             Showing as a 1D prior will show the 1D histograms, but won't plot the 2D contours.
         global_point : bool, optional
-            Whether the point which gets plotted is the global posterior maximum, or the marginalised 2D 
+            Whether the point which gets plotted is the global posterior maximum, or the marginalised 2D
             posterior maximum. Note that when you use marginalised 2D maximums for the points, you do not
              get the 1D histograms. Defaults to `True`, for a global maximum value.
         marker_style : str|list[str], optional

@@ -33,7 +33,6 @@ class Plotter(object):
         display=False,
         truth=None,
         legend=None,
-        blind=None,
         watermark=None,
         log_scales=None,
     ):  # pragma: no cover
@@ -69,9 +68,6 @@ class Plotter(object):
             truth values indexed by key
         legend : bool, optional
             If true, creates a legend in your plot using the chain names.
-        blind : bool|string|list[string], optional
-            Whether to blind axes values. Can be set to `True` to blind all parameters,
-            or can pass in a string (or list of strings) which specify the parameters to blind.
         watermark : str, optional
             A watermark to add to the figure
         log_scales : bool, list[bool] or dict[bool], optional
@@ -86,8 +82,8 @@ class Plotter(object):
 
         """
 
-        chains, parameters, truth, extents, blind, log_scales = self._sanitise(
-            chains, parameters, truth, extents, color_p=True, blind=blind,
+        chains, parameters, truth, extents, log_scales = self._sanitise(
+            chains, parameters, truth, extents, color_p=True,
             log_scales=log_scales,
         )
         names = [chain.name for chain in chains]
@@ -134,7 +130,7 @@ class Plotter(object):
 
         fig, axes, params1, params2, extents = self._get_figure(
             parameters, chains=chains, figsize=figsize, flip=flip,
-            external_extents=extents, blind=blind, log_scales=log_scales
+            external_extents=extents, log_scales=log_scales
         )
         label_font_size = self.parent.config["label_font_size"]
 
@@ -179,7 +175,7 @@ class Plotter(object):
                         if not chain.config["plot_contour"]:
                             continue
 
-                        param_summary = summary and p1 not in blind
+                        param_summary = summary
                         m = self._plot_bars(ax, p1, chain, flip=do_flip, summary=param_summary)
 
                         if max_val is None or m > max_val:
@@ -473,7 +469,7 @@ class Plotter(object):
 
     def plot_distributions(
         self, parameters=None, truth=None, extents=None, display=False,
-        filename=None, chains=None, col_wrap=4, figsize=None, blind=None,
+        filename=None, chains=None, col_wrap=4, figsize=None,
         log_scales=None
     ):  # pragma: no cover
         """ Plots the 1D parameter distributions for verification purposes.
@@ -507,9 +503,6 @@ class Plotter(object):
             How many columns to plot before wrapping.
         figsize : tuple(float)|float, optional
             Either a tuple specifying the figure size or a float scaling factor.
-        blind : bool|string|list[string], optional
-            Whether to blind axes values. Can be set to `True` to blind all parameters,
-            or can pass in a string (or list of strings) which specify the parameters to blind.
         log_scales : bool, list[bool] or dict[bool], optional
             Whether or not to use a log scale on any given axis. Can be a list of True/False, a list of param
             names to set to true, a dictionary of param names with true/false
@@ -521,7 +514,8 @@ class Plotter(object):
             the matplotlib figure created
 
         """
-        chains, parameters, truth, extents, blind, log_scales = self._sanitise(chains, parameters, truth, extents, blind=blind, log_scales=log_scales)
+        chains, parameters, truth, extents, log_scales = self._sanitise(
+                chains, parameters, truth, extents, log_scales=log_scales)
 
         n = len(parameters)
         num_cols = min(n, col_wrap)
@@ -560,18 +554,15 @@ class Plotter(object):
             ax.set_yticks([])
             if log_scales.get(p, False):
                 ax.set_xscale("log")
-            if p in blind:
-                ax.set_xticks([])
-            else:
-                if diagonal_tick_labels:
-                    _ = [l.set_rotation(45) for l in ax.get_xticklabels()]
-                _ = [l.set_fontsize(tick_font_size) for l in ax.get_xticklabels()]
+            if diagonal_tick_labels:
+                _ = [l.set_rotation(45) for l in ax.get_xticklabels()]
+            _ = [l.set_fontsize(tick_font_size) for l in ax.get_xticklabels()]
 
-                if log_scales.get(p, False):
-                    ax.xaxis.set_major_locator(LogLocator(numticks=max_ticks))
-                else:
-                    ax.xaxis.set_major_locator(MaxNLocator(max_ticks, prune="lower"))
-                    ax.xaxis.set_major_formatter(formatter)
+            if log_scales.get(p, False):
+                ax.xaxis.set_major_locator(LogLocator(numticks=max_ticks))
+            else:
+                ax.xaxis.set_major_locator(MaxNLocator(max_ticks, prune="lower"))
+                ax.xaxis.set_major_formatter(formatter)
             ax.set_xlim(extents.get(p) or self._get_parameter_extents(p, chains))
 
             max_val = None
@@ -579,7 +570,7 @@ class Plotter(object):
                 if not chain.config["plot_contour"]:
                     continue
                 if p in chain.parameters:
-                    param_summary = summary and p not in blind
+                    param_summary = summary
                     m = self._plot_bars(ax, p, chain, summary=param_summary)
                     if max_val is None or m > max_val:
                         max_val = m
@@ -609,7 +600,6 @@ class Plotter(object):
         figsize=1.0,
         errorbar=False,
         include_truth_chain=True,
-        blind=None,
         watermark=None,
         extra_parameter_spacing=0.5,
         vertical_spacing_ratio=1.0,
@@ -653,9 +643,6 @@ class Plotter(object):
         include_truth_chain : bool, optional
             If you specify another chain as the truth chain, determine if it should still
             be plotted.
-        blind : bool|string|list[string], optional
-            Whether to blind axes values. Can be set to `True` to blind all parameters,
-            or can pass in a string (or list of strings) which specify the parameters to blind.
         watermark : str, optional
             A watermark to add to the figure
         extra_parameter_spacing : float, optional
@@ -676,8 +663,9 @@ class Plotter(object):
 
         """
         wide_extents = not errorbar
-        chains, parameters, truth, extents, blind, log_scales = self._sanitise(
-            chains, parameters, truth, extents, blind=blind, wide_extents=wide_extents, log_scales=log_scales
+        chains, parameters, truth, extents, log_scales = self._sanitise(
+            chains, parameters, truth, extents, wide_extents=wide_extents,
+            log_scales=log_scales
         )
 
         all_names = [c.name for c in self.parent.chains]
@@ -744,7 +732,7 @@ class Plotter(object):
                     ax.spines["top"].set_visible(False)
                 if i < (len(chains) - 1):
                     ax.spines["bottom"].set_visible(False)
-                if i < (len(chains) - 1) or p in blind:
+                if i < (len(chains) - 1):
                     ax.set_xticks([])
                 ax.set_yticks([])
                 ax.set_xlim(extents[p])
@@ -816,7 +804,7 @@ class Plotter(object):
         widths = [TextPath((0, 0), text, usetex=usetex, size=size).get_extents().width for text in texts]
         return max(widths)
 
-    def _sanitise(self, chains, parameters, truth, extents, color_p=False, blind=None, wide_extents=True, log_scales=None):  # pragma: no cover
+    def _sanitise(self, chains, parameters, truth, extents, color_p=False, wide_extents=True, log_scales=None):  # pragma: no cover
 
         chains = self._sanitise_chains(chains)
 
@@ -878,16 +866,10 @@ class Plotter(object):
         elif isinstance(log_scales, bool):
             log_scales = dict([(p, log_scales) for p in parameters])
 
-        if blind is None:
-            blind = []
-        elif isinstance(blind, str):
-            blind = [blind]
-        elif isinstance(blind, bool) and blind:
-            blind = parameters
 
         self.set_rc_params()
 
-        return chains, parameters, truth, extents, blind, log_scales
+        return chains, parameters, truth, extents, log_scales
 
     def set_rc_params(self):
         if self.parent.config["usetex"]:
@@ -919,7 +901,7 @@ class Plotter(object):
         return extents
 
     def _get_figure(self, all_parameters, flip, figsize=(5, 5),
-                    external_extents=None, chains=None, blind=None,
+                    external_extents=None, chains=None,
                     log_scales=None,
                     ):  # pragma: no cover
         n = len(all_parameters)
@@ -929,8 +911,6 @@ class Plotter(object):
         label_font_size = self.parent.config["label_font_size"]
         tick_font_size = self.parent.config["tick_font_size"]
         diagonal_tick_labels = self.parent.config["diagonal_tick_labels"]
-        if blind is None:
-            blind = []
 
         if chains is None:
             chains = self.parent.chains
