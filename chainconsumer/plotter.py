@@ -980,9 +980,9 @@ class Plotter(object):
                             ax.set_ylabel(p1, fontsize=label_font_size)
                         has_y_ticklabel = True
                     if not has_x_ticklabel:
-                        ax.set_xticklabels([], color='w')
+                        ax.set_xticklabels([], color='w', alpha=0.01)
                     if not has_y_ticklabel:
-                        ax.set_yticklabels([], color='w')
+                        ax.set_yticklabels([], color='w', alpha=0.01)
                     if diagonal_tick_labels:
                         _ = [l.set_rotation(45) for l in ax.get_xticklabels()]
                     _ = [l.set_fontsize(tick_font_size) for l in ax.get_xticklabels()]
