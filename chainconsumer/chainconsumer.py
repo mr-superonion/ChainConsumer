@@ -474,6 +474,7 @@ class ChainConsumer(object):
         summary_area=0.6827,
         zorder=None,
         stack=False,
+        norm_max=False,
     ):  # pragma: no cover
         r""" Configure the general plotting parameters common across the bar
         and contour plots.
@@ -626,6 +627,8 @@ class ChainConsumer(object):
             The confidence interval used when generating parameter summaries. Defaults to 1 sigma, aka 0.6827
         zorder : int, optional
             The zorder to pass to `matplotlib` to determine visual ordering when plotting.
+        norm_max: bool, optional
+            Wether normalize the maximum to 1
 
         Returns
         -------
@@ -964,6 +967,7 @@ class ChainConsumer(object):
         self.config["legend_color_text"] = legend_color_text
         self.config["watermark_text_kwargs"] = watermark_text_kwargs_default
         self.config["global_point"] = global_point
+        self.config["norm_max"] = norm_max
 
         self._configured = True
         return self

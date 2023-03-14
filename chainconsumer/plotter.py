@@ -136,6 +136,7 @@ class Plotter(object):
 
         axl = axes.ravel().tolist()
         summary = self.parent.config["summary"]
+        norm_max = self.parent.config["norm_max"]
 
         if summary is None:
             summary = len(parameters) < 5 and len(self.parent.chains) == 1
@@ -176,13 +177,13 @@ class Plotter(object):
                             continue
 
                         param_summary = summary
-                        m = self._plot_bars(ax, p1, chain, flip=do_flip, summary=param_summary)
+                        m = self._plot_bars(ax, p1, chain, flip=do_flip, summary=param_summary, norm_max=norm_max)
 
                         if max_val is None or m > max_val:
                             max_val = m
 
                     if num_chain_points and self.parent.config["global_point"]:
-                        m = self._plot_point_histogram(ax, subgroups, p1, flip=do_flip)
+                        m = self._plot_point_histogram(ax, subgroups, p1, flip=do_flip, norm_max=norm_max)
                         if max_val is None or m > max_val:
                             max_val = m
 
@@ -1164,9 +1165,10 @@ class Plotter(object):
 
         if shade and shade_alpha > 0:
             ax.contourf(x_centers, y_centers, vals, levels=levels,
-                        colors=colours, alpha=shade_alpha, zorder=zorder,
-                        )
-        con = ax.contour(x_centers, y_centers, vals, levels=levels,
+                         colors=colours, alpha=shade_alpha, zorder=zorder,
+                         )
+        else:
+            con = ax.contour(x_centers, y_centers, vals, levels=levels,
                          colors=colours2, linestyles=linestyle,
                          linewidths=linewidth, zorder=zorder,
                          )
@@ -1192,7 +1194,7 @@ class Plotter(object):
                 if truth_value is not None:
                     ax.axvline(truth_value, **self.parent.config_truth)
 
-    def _plot_bars(self, ax, parameter, chain, flip=False, summary=False):  # pragma: no cover
+    def _plot_bars(self, ax, parameter, chain, flip=False, summary=False, norm_max=False):  # pragma: no cover
 
         # Get values from config
         colour = chain.config["color"]
@@ -1208,6 +1210,8 @@ class Plotter(object):
         weights = chain.weights
         if smooth or kde:
             xs, ys, _ = self.parent.analysis._get_smoothed_histogram(chain, parameter, pad=True)
+            if norm_max:
+                ys = ys / ys.max()
             if flip:
                 ax.plot(ys, xs, color=colour, ls=linestyle, lw=linewidth, zorder=zorder)
             else:
@@ -1226,6 +1230,8 @@ class Plotter(object):
                 hist = hist ** chain.power
             edge_center = 0.5 * (edges[:-1] + edges[1:])
             xs, ys = edge_center, hist
+            if norm_max:
+                ys = ys / ys.max()
             ax.hist(xs, weights=ys, bins=bins, histtype="step", color=colour, orientation=orientation, ls=linestyle, lw=linewidth, zorder=zorder)
         interp_type = "linear" if smooth else "nearest"
         interpolator = interp1d(xs, ys, kind=interp_type)
@@ -1253,7 +1259,7 @@ class Plotter(object):
                             ax.set_title(r"$%s$" % t, fontsize=title_size)
         return ys.max()
 
-    def _plot_point_histogram(self, ax, chains_groups, parameter, flip=False):  # pragma: no cover
+    def _plot_point_histogram(self, ax, chains_groups, parameter, flip=False, norm_max=False):  # pragma: no cover
         max_val = 0
         for chains in chains_groups:
             if len(chains) < 10:  # You probably dont want a contour if you only have a small group
@@ -1272,6 +1278,10 @@ class Plotter(object):
 
             bin_center = 0.5 * (bin_edges[:-1] + bin_edges[1:])
             xs, ys = bin_center, hist
+            if norm_max:
+                # normalize the maximum to 1
+                ys = ys / max_val
+                max_val = 1.
             ax.hist(xs, weights=ys, bins=bin_edges, histtype="step", color=colour, orientation=orientation)
         return max_val
 
