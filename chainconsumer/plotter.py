@@ -1136,11 +1136,14 @@ class Plotter(object):
         color_extent = color_extents.get(chain.config["color_params"])
 
         cf = self.parent.color_finder
-        colours = self._scale_colours(colour, len(levels), shade_gradient)
+        colours0 = self._scale_colours(colour, len(levels), shade_gradient)
+        colours = self._get_paler_colors(colour, len(levels))
         sub = max(0.1, 1 - 0.2 * shade_gradient)
         if shade:
             sub *= 0.9
-        colours2 = [cf.scale_colour(colours[0], sub)] + [cf.scale_colour(c, sub) for c in colours[:-1]]
+
+        colours2 = [cf.scale_colour(colours0[0], sub)] + \
+                [cf.scale_colour(c, sub) for c in colours0[:-1]]
 
         hist, x_centers, y_centers = self._get_smoothed_histogram2d(chain, py, px)
 
@@ -1166,6 +1169,10 @@ class Plotter(object):
         if shade and shade_alpha > 0:
             ax.contourf(x_centers, y_centers, vals, levels=levels,
                          colors=colours, alpha=shade_alpha, zorder=zorder,
+                         )
+            con = ax.contour(x_centers, y_centers, vals, levels=levels,
+                         colors=colours2, linestyles='-',
+                         linewidths=0.5, zorder=zorder,
                          )
         else:
             con = ax.contour(x_centers, y_centers, vals, levels=levels,
@@ -1210,6 +1217,10 @@ class Plotter(object):
         weights = chain.weights
         if smooth or kde:
             xs, ys, _ = self.parent.analysis._get_smoothed_histogram(chain, parameter, pad=True)
+            xs_nopad, _, _ = self.parent.analysis._get_smoothed_histogram(chain, parameter, pad=False)
+            bound_selection = (xs>np.min(xs_nopad))
+            xs = xs[bound_selection]
+            ys = ys[bound_selection]
             if norm_max:
                 ys = ys / ys.max()
             if flip:
@@ -1329,6 +1340,15 @@ class Plotter(object):
         scales = np.logspace(np.log(minv), np.log(maxv), num)
         colours = [self.parent.color_finder.scale_colour(colour, scale) for scale in scales]
         return colours
+
+    def _get_paler_colors(self, color, num, pale_factor=None):
+        # convert a color into an array of colors for used in contours
+        color = matplotlib.colors.colorConverter.to_rgb(color)
+        pale_factor = pale_factor or 0.6
+        cols = [color]
+        for _ in range(1, num):
+            cols = cols + [set([c * (1 - pale_factor) + pale_factor for c in cols[-1]])]
+        return cols
 
     def _get_smoothed_histogram2d(self, chain, param1, param2):  # pragma: no cover
         # No test coverage here because
