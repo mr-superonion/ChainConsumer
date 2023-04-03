@@ -163,6 +163,12 @@ class Plotter(object):
 
                 # Plot the histograms
                 if plot_hists and i == j:
+                    if False:
+                        if i == 0:
+                            ax.spines["left"].set_visible(False)
+                        ax.spines["top"].set_visible(False)
+                        ax.spines["right"].set_visible(False)
+                        ax.tick_params(top=False)
                     if do_flip:
                         self._add_truth(ax, truth, p1)
                     else:
@@ -1172,11 +1178,11 @@ class Plotter(object):
                          )
             con = ax.contour(x_centers, y_centers, vals, levels=levels,
                          colors=colours2, linestyles='-',
-                         linewidths=0.5, zorder=zorder,
+                         linewidths=1.0, zorder=zorder,
                          )
         else:
             con = ax.contour(x_centers, y_centers, vals, levels=levels,
-                         colors=colours2, linestyles=linestyle,
+                         colors=colours0[0], linestyles=linestyle, alpha=0.95,
                          linewidths=linewidth, zorder=zorder,
                          )
 
@@ -1265,7 +1271,7 @@ class Plotter(object):
                     if summary:
                         t = self.parent.analysis.get_parameter_text(*fit_values)
                         if isinstance(parameter, str):
-                            ax.set_title(r"$%s = %s$" % (parameter.strip("$"), t), fontsize=title_size)
+                            ax.set_title(r"$%s\!=\!%s$" % (parameter.strip("$"), t), fontsize=title_size)
                         else:
                             ax.set_title(r"$%s$" % t, fontsize=title_size)
         return ys.max()
