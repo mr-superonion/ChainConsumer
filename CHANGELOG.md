@@ -5,7 +5,9 @@
 * First-order Boundary correction following getdist and cosmosis;
 * Uses the kernel smoothing scale that minimize MISE [this
   paper](https://arxiv.org/pdf/1910.13970.pdf);
-* Neglect the correlation between accepted point and get $N_\text{eff}$.
+* Neglect the correlation between accepted point and get $N_\text{eff}$;
+* Apply multiplicative bias correction and the 1D error estimation matches the
+  getdist.
 
 ##### 0.34.0
 * Making `usetex=False` and `serif=False` the defaults to reduce LaTeX errors.
