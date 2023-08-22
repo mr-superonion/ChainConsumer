@@ -12,7 +12,7 @@ class Comparison(object):
         self._logger = logging.getLogger("chainconsumer")
 
     def dic(self):
-        r""" Returns the corrected Deviance Information Criterion (DIC) for all chains loaded into ChainConsumer.
+        r"""Returns the corrected Deviance Information Criterion (DIC) for all chains loaded into ChainConsumer.
 
         If a chain does not have a posterior, this method will return `None` for that chain. **Note that
         the DIC metric is only valid on posterior surfaces which closely resemble multivariate normals!**
@@ -42,11 +42,19 @@ class Comparison(object):
             p = chain.posterior
             if p is None:
                 dics_bool.append(False)
-                self._logger.warning("You need to set the posterior for chain %s to get the DIC" % chain.name)
+                self._logger.warning(
+                    "You need to set the posterior for chain %s to get the DIC"
+                    % chain.name
+                )
             else:
                 dics_bool.append(True)
                 num_params = chain.chain.shape[1]
-                means = np.array([np.average(chain.chain[:, ii], weights=chain.weights) for ii in range(num_params)])
+                means = np.array(
+                    [
+                        np.average(chain.chain[:, ii], weights=chain.weights)
+                        for ii in range(num_params)
+                    ]
+                )
                 d = -2 * p
                 d_of_mean = griddata(chain.chain, d, means, method="nearest")[0]
                 mean_d = np.average(d, weights=chain.weights)
@@ -66,7 +74,7 @@ class Comparison(object):
         return dics_fin
 
     def bic(self):
-        r""" Returns the corrected Bayesian Information Criterion (BIC) for all chains loaded into ChainConsumer.
+        r"""Returns the corrected Bayesian Information Criterion (BIC) for all chains loaded into ChainConsumer.
 
         If a chain does not have a posterior, number of data points, and number of free parameters
         loaded, this method will return `None` for that chain. Formally, the BIC is defined as
@@ -85,7 +93,11 @@ class Comparison(object):
         bics = []
         bics_bool = []
         for i, chain in enumerate(self.parent.chains):
-            p, n_data, n_free = chain.posterior, chain.num_eff_data_points, chain.num_free_params
+            p, n_data, n_free = (
+                chain.posterior,
+                chain.num_eff_data_points,
+                chain.num_free_params,
+            )
             if p is None or n_data is None or n_free is None:
                 bics_bool.append(False)
                 missing = ""
@@ -96,7 +108,10 @@ class Comparison(object):
                 if n_free is None:
                     missing += "num_free_params, "
 
-                self._logger.warning("You need to set %s for chain %s to get the BIC" % (missing[:-2], chain.name))
+                self._logger.warning(
+                    "You need to set %s for chain %s to get the BIC"
+                    % (missing[:-2], chain.name)
+                )
             else:
                 bics_bool.append(True)
                 bics.append(n_free * np.log(n_data) - 2 * np.max(p))
@@ -113,7 +128,7 @@ class Comparison(object):
         return bics_fin
 
     def aic(self):
-        r""" Returns the corrected Akaike Information Criterion (AICc) for all chains loaded into ChainConsumer.
+        r"""Returns the corrected Akaike Information Criterion (AICc) for all chains loaded into ChainConsumer.
 
         If a chain does not have a posterior, number of data points, and number of free parameters
         loaded, this method will return `None` for that chain. Formally, the AIC is defined as
@@ -138,7 +153,11 @@ class Comparison(object):
         aics = []
         aics_bool = []
         for i, chain in enumerate(self.parent.chains):
-            p, n_data, n_free = chain.posterior, chain.num_eff_data_points, chain.num_free_params
+            p, n_data, n_free = (
+                chain.posterior,
+                chain.num_eff_data_points,
+                chain.num_free_params,
+            )
             if p is None or n_data is None or n_free is None:
                 aics_bool.append(False)
                 missing = ""
@@ -149,7 +168,10 @@ class Comparison(object):
                 if n_free is None:
                     missing += "num_free_params, "
 
-                self._logger.warning("You need to set %s for chain %s to get the AIC" % (missing[:-2], chain.name))
+                self._logger.warning(
+                    "You need to set %s for chain %s to get the AIC"
+                    % (missing[:-2], chain.name)
+                )
             else:
                 aics_bool.append(True)
                 c_cor = 1.0 * n_free * (n_free + 1) / (n_data - n_free - 1)
@@ -167,7 +189,15 @@ class Comparison(object):
         return aics_fin
 
     def comparison_table(
-        self, caption=None, label="tab:model_comp", hlines=True, aic=True, bic=True, dic=True, sort="bic", descending=True
+        self,
+        caption=None,
+        label="tab:model_comp",
+        hlines=True,
+        aic=True,
+        bic=True,
+        dic=True,
+        sort="bic",
+        descending=True,
     ):  # pragma: no cover
         """
         Return a LaTeX ready table of model comparisons.
@@ -217,7 +247,13 @@ class Comparison(object):
         hline_text = "\\hline\n"
         if hlines:
             center_text += hline_text
-        center_text += "\tModel" + (" & AIC" if aic else "") + (" & BIC " if bic else "") + (" & DIC " if dic else "") + end_text
+        center_text += (
+            "\tModel"
+            + (" & AIC" if aic else "")
+            + (" & BIC " if bic else "")
+            + (" & DIC " if dic else "")
+            + end_text
+        )
         if hlines:
             center_text += "\t" + hline_text
         if aic:

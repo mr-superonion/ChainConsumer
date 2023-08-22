@@ -4,8 +4,8 @@ import numpy as np
 
 
 class MegKDE(object):
-    """ Matched Elliptical Gaussian Kernel Density Estimator
-    
+    """Matched Elliptical Gaussian Kernel Density Estimator
+
     Adapted from the algorithm specified in the BAMBIS's model specified Wolf 2017
     to support weighted samples.
     """
@@ -44,7 +44,9 @@ class MegKDE(object):
         self.d = np.dot(dx, self.A)  # Sphere-ified data
         self.tree = spatial.cKDTree(self.d)  # kD tree of data
 
-        self.sigma = 2.0 * factor * np.power(self.num_points, -1.0 / (4 + self.num_dim))  # Starting sigma (bw) of Gauss
+        self.sigma = (
+            2.0 * factor * np.power(self.num_points, -1.0 / (4 + self.num_dim))
+        )  # Starting sigma (bw) of Gauss
         self.sigma_fact = -0.5 / (self.sigma * self.sigma)
 
         # Cant get normed probs to work atm, turning off for now as I don't need normed pdfs for contours
@@ -52,13 +54,13 @@ class MegKDE(object):
         # self.scaling = np.power(self.norm * self.sigma, -self.num_dim)
 
     def evaluate(self, data):
-        """ Estimate un-normalised probability density at target points
-        
+        """Estimate un-normalised probability density at target points
+
         Parameters
         ----------
         data : np.ndarray
-            A `(num_targets, num_dim)` array of points to investigate. 
-        
+            A `(num_targets, num_dim)` array of points to investigate.
+
         Returns
         -------
         np.ndarray

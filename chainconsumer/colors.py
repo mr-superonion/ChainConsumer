@@ -39,7 +39,20 @@ class Colors(object):
             "lg": "lgreen",
             "lb": "lblue",
         }
-        self.default_colors = ["blue", "lgreen", "red", "purple", "yellow", "grey", "lblue", "magenta", "green", "brown", "black", "orange"]
+        self.default_colors = [
+            "blue",
+            "lgreen",
+            "red",
+            "purple",
+            "yellow",
+            "grey",
+            "lblue",
+            "magenta",
+            "green",
+            "brown",
+            "black",
+            "orange",
+        ]
 
     def format(self, color):
         if isinstance(color, np.ndarray):
@@ -61,7 +74,9 @@ class Colors(object):
         return self.get_formatted(self.default_colors)
 
     def get_colormap(self, num, cmap_name, scale=0.7):  # pragma: no cover
-        color_list = self.get_formatted(plt.get_cmap(cmap_name)(np.linspace(0.05, 0.9, num)))
+        color_list = self.get_formatted(
+            plt.get_cmap(cmap_name)(np.linspace(0.05, 0.9, num))
+        )
         scales = scale + (1 - scale) * np.abs(1 - np.linspace(0, 2, num))
         scaled = [self.scale_colour(c, s) for c, s in zip(color_list, scales)]
         return scaled

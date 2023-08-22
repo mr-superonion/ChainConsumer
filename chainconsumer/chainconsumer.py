@@ -15,7 +15,7 @@ __all__ = ["ChainConsumer"]
 
 
 class ChainConsumer(object):
-    """ A class for consuming chains produced by an MCMC walk. Or grid searches. To make plots,
+    """A class for consuming chains produced by an MCMC walk. Or grid searches. To make plots,
     figures, tables, diagnostics, you name it.
 
     """
@@ -80,7 +80,7 @@ class ChainConsumer(object):
         shade_gradient=None,
         bar_shade=None,
         bins=None,
-        smooth=None,
+        smooth=1,
         color_params=None,
         plot_color_params=None,
         cmap=None,
@@ -88,7 +88,7 @@ class ChainConsumer(object):
         zorder=None,
         shift_params=None,
     ):
-        r""" Add a chain to the consumer.
+        r"""Add a chain to the consumer.
 
         Parameters
         ----------
@@ -173,7 +173,9 @@ class ChainConsumer(object):
             of bins to the given value. Giving a float will scale the number of bins, such
             that giving ``bins=1.5`` will result in using :math:`\frac{1.5\sqrt{n}}{10}` bins.
             Note this parameter is most useful if `kde=False` is also passed, so you
-            can actually see the bins and not a KDE.        smooth :
+            can actually see the bins and not a KDE.
+        smooth :  int|float, optional
+            The smoothing factor
         color_params : str, optional
             The name of the parameter to use for the colour scatter. Defaults to none, for no colour. If set
             to 'weights', 'log_weights', or 'posterior' (without the quotes), and that is not a parameter in the chain,
@@ -206,7 +208,9 @@ class ChainConsumer(object):
             else:
                 chain = pd.read_csv(chain)
         elif isinstance(chain, dict):
-            assert parameters is None, "You cannot pass a dictionary and specify parameter names"
+            assert (
+                parameters is None
+            ), "You cannot pass a dictionary and specify parameter names"
             is_dict = True
             parameters = list(chain.keys())
             chain = np.array([chain[p] for p in parameters]).T
@@ -214,7 +218,9 @@ class ChainConsumer(object):
             chain = np.array(chain).T
 
         if isinstance(chain, pd.DataFrame):
-            assert parameters is None, "You cannot pass a DataFrame and use parameter names, we're using the columns names"
+            assert (
+                parameters is None
+            ), "You cannot pass a DataFrame and use parameter names, we're using the columns names"
             parameters = list(chain.columns)
             if "weight" in parameters:
                 weights = chain["weight"]
@@ -228,13 +234,16 @@ class ChainConsumer(object):
             assert weights is not None, "If grid is set, you need to supply weights"
             if len(weights.shape) > 1:
                 assert not is_dict, (
-                    "We cannot construct a meshgrid from a dictionary, as the parameters" "are no longer ordered. Please pass in a flattened array instead."
+                    "We cannot construct a meshgrid from a dictionary, as the parameters"
+                    "are no longer ordered. Please pass in a flattened array instead."
                 )
                 self._logger.info("Constructing meshgrid for grid results")
                 meshes = np.meshgrid(*[u for u in chain.T], indexing="ij")
                 chain = np.vstack([m.flatten() for m in meshes]).T
                 weights = weights.flatten()
-                assert weights.size == chain[:, 0].size, "Error, given weight array size disagrees with parameter sampling"
+                assert (
+                    weights.size == chain[:, 0].size
+                ), "Error, given weight array size disagrees with parameter sampling"
 
         if len(chain.shape) == 1:
             chain = chain[None].T
@@ -243,16 +252,21 @@ class ChainConsumer(object):
             name = "Chain %d" % len(self.chains)
 
         if power is not None:
-            assert isinstance(power, int) or isinstance(power, float), "Power should be numeric, but is %s" % type(power)
+            assert isinstance(power, int) or isinstance(
+                power, float
+            ), "Power should be numeric, but is %s" % type(power)
 
         if self._default_parameters is None and parameters is not None:
             self._default_parameters = parameters
 
         if parameters is None:
             if self._default_parameters is not None:
-                assert chain.shape[1] == len(self._default_parameters), "Chain has %d dimensions, but default parameters have %d dimensions" % (
-                    chain.shape[1],
-                    len(self._default_parameters),
+                assert chain.shape[1] == len(self._default_parameters), (
+                    "Chain has %d dimensions, but default parameters have %d dimensions"
+                    % (
+                        chain.shape[1],
+                        len(self._default_parameters),
+                    )
                 )
                 parameters = self._default_parameters
                 self._logger.debug("Adding chain using default parameters")
@@ -261,9 +275,13 @@ class ChainConsumer(object):
                 parameters = ["%d" % x for x in range(chain.shape[1])]
         else:
             self._logger.debug("Adding chain with defined parameters")
-            assert len(parameters) <= chain.shape[1], "Have only %d columns in chain, but have been given %d parameters names! " "Please double check this." % (
-                chain.shape[1],
-                len(parameters),
+            assert len(parameters) <= chain.shape[1], (
+                "Have only %d columns in chain, but have been given %d parameters names! "
+                "Please double check this."
+                % (
+                    chain.shape[1],
+                    len(parameters),
+                )
             )
         for p in parameters:
             if p not in self._all_parameters:
@@ -274,7 +292,10 @@ class ChainConsumer(object):
                 shift_params = dict([(p, s) for p, s in zip(parameters, shift_params)])
             for key in shift_params.keys():
                 if key not in parameters:
-                    self._logger.warning("Warning, shift parameter %s is not in list of parameters %s" % (key, parameters))
+                    self._logger.warning(
+                        "Warning, shift parameter %s is not in list of parameters %s"
+                        % (key, parameters)
+                    )
 
         # Sorry, no KDE for you on a grid.
         if grid:
@@ -323,7 +344,7 @@ class ChainConsumer(object):
         return self
 
     def add_covariance(self, mean, covariance, parameters=None, name=None, **kwargs):
-        r""" Generate samples as per mean and covariance supplied. Useful for Fisher matrix forecasts.
+        r"""Generate samples as per mean and covariance supplied. Useful for Fisher matrix forecasts.
 
         Parameters
         ----------
@@ -346,13 +367,22 @@ class ChainConsumer(object):
         """
         chain = np.random.multivariate_normal(mean, covariance, size=1000000)
         self.add_chain(chain, parameters=parameters, name=name, **kwargs)
-        self.chains[-1].mcmc_chain = False  # So we dont plot this when looking at walks, etc
+        self.chains[
+            -1
+        ].mcmc_chain = False  # So we dont plot this when looking at walks, etc
         return self
 
     def add_marker(
-        self, location, parameters=None, name=None, color=None, marker_size=None, marker_style=None, marker_alpha=None,
+        self,
+        location,
+        parameters=None,
+        name=None,
+        color=None,
+        marker_size=None,
+        marker_style=None,
+        marker_alpha=None,
     ):
-        r""" Add a marker to the plot at the given location.
+        r"""Add a marker to the plot at the given location.
 
         Parameters
         ----------
@@ -390,11 +420,13 @@ class ChainConsumer(object):
             plot_point=True,
             plot_contour=False,
         )
-        self.chains[-1].mcmc_chain = False  # So we dont plot this when looking at walks, etc
+        self.chains[
+            -1
+        ].mcmc_chain = False  # So we dont plot this when looking at walks, etc
         return self
 
     def remove_chain(self, chain=-1):
-        r""" Removes a chain from ChainConsumer.
+        r"""Removes a chain from ChainConsumer.
 
         Calling this will require any configurations set to be redone!
 
@@ -413,13 +445,20 @@ class ChainConsumer(object):
             chain = [chain]
 
         chain = sorted([i for c in chain for i in self._get_chain(c)])[::-1]
-        assert len(chain) == len(list(set(chain))), "Error, you are trying to remove a chain more than once."
+        assert len(chain) == len(
+            list(set(chain))
+        ), "Error, you are trying to remove a chain more than once."
 
         for index in chain:
             del self.chains[index]
 
         seen = set()
-        self._all_parameters = [p for c in self.chains for p in c.parameters if not (p in seen or seen.add(p))]
+        self._all_parameters = [
+            p
+            for c in self.chains
+            for p in c.parameters
+            if not (p in seen or seen.add(p))
+        ]
 
         # Need to reconfigure
         self._init_params()
@@ -442,7 +481,7 @@ class ChainConsumer(object):
         linestyles=None,
         linewidths=None,
         kde=False,
-        smooth=None,
+        smooth=1,
         cloud=None,
         shade=None,
         shade_alpha=None,
@@ -476,7 +515,7 @@ class ChainConsumer(object):
         stack=False,
         norm_max=False,
     ):  # pragma: no cover
-        r""" Configure the general plotting parameters common across the bar
+        r"""Configure the general plotting parameters common across the bar
         and contour plots.
 
         If you do not call this explicitly, the :func:`plot`
@@ -638,8 +677,13 @@ class ChainConsumer(object):
         # Warn the user if configure has been invoked multiple times
         self._num_configure_calls += 1
         if self._num_configure_calls > 1:
-            self._logger.warning("Configure has been called %d times - this is not good - it should be once!" % self._num_configure_calls)
-            self._logger.warning("To avoid this, load your chains in first, then call analysis/plotting methods")
+            self._logger.warning(
+                "Configure has been called %d times - this is not good - it should be once!"
+                % self._num_configure_calls
+            )
+            self._logger.warning(
+                "To avoid this, load your chains in first, then call analysis/plotting methods"
+            )
 
         # Dirty way of ensuring overrides happen when requested
         l = locals()
@@ -653,12 +697,21 @@ class ChainConsumer(object):
 
         num_chains = len(self.chains)
 
-        assert cmap is None or colors is None, "You cannot both ask for cmap colours and then give explicit colours"
+        assert (
+            cmap is None or colors is None
+        ), "You cannot both ask for cmap colours and then give explicit colours"
 
         # Determine statistics
-        assert statistics is not None, "statistics should be a string or list of strings!"
+        assert (
+            statistics is not None
+        ), "statistics should be a string or list of strings!"
         if isinstance(statistics, str):
-            assert statistics in list(Analysis.summaries), "statistics %s not recognised. Should be in %s" % (statistics, Analysis.summaries,)
+            assert statistics in list(
+                Analysis.summaries
+            ), "statistics %s not recognised. Should be in %s" % (
+                statistics,
+                Analysis.summaries,
+            )
             statistics = [statistics.lower()] * len(self.chains)
         elif isinstance(statistics, list):
             for i, l in enumerate(statistics):
@@ -677,7 +730,10 @@ class ChainConsumer(object):
         if bins is None:
             bins = get_bins(self.chains)
         elif isinstance(bins, list):
-            bins = [b2 if isinstance(b2, int) else np.floor(b2 * b1) for b1, b2 in zip(get_bins(self.chains), bins)]
+            bins = [
+                b2 if isinstance(b2, int) else np.floor(b2 * b1)
+                for b1, b2 in zip(get_bins(self.chains), bins)
+            ]
         elif isinstance(bins, float):
             bins = [np.floor(b * bins) for b in get_bins(self.chains)]
         elif isinstance(bins, int):
@@ -686,28 +742,32 @@ class ChainConsumer(object):
             raise ValueError("bins value is not a recognised class (float or int)")
 
         # Determine smoothing
-        if smooth is None:
-            smooth = [0 if c.grid or k else 3 for c, k in zip(self.chains, kde)]
-        else:
-            if smooth is not None and not smooth:
-                smooth = 0
-            if isinstance(smooth, list):
-                smooth = [0 if k else s for s, k in zip(smooth, kde)]
-            else:
-                smooth = [0 if k else smooth for k in kde]
+        smooth = [smooth for c in self.chains]
 
         # Determine color parameters
         if color_params is None:
             color_params = [None] * num_chains
         else:
             if isinstance(color_params, str):
-                color_params = [color_params if color_params in cs.parameters + ["log_weights", "weights", "posterior"] else None for cs in self.chains]
-                color_params = [None if c == "posterior" and self.chains[i].posterior is None else c for i, c in enumerate(color_params)]
+                color_params = [
+                    color_params
+                    if color_params
+                    in cs.parameters + ["log_weights", "weights", "posterior"]
+                    else None
+                    for cs in self.chains
+                ]
+                color_params = [
+                    None if c == "posterior" and self.chains[i].posterior is None else c
+                    for i, c in enumerate(color_params)
+                ]
             elif isinstance(color_params, list) or isinstance(color_params, tuple):
                 for c, chain in zip(color_params, self.chains):
                     p = chain.parameters
                     if c is not None:
-                        assert c in p, "Color parameter %s not in parameters %s" % (c, p)
+                        assert c in p, "Color parameter %s not in parameters %s" % (
+                            c,
+                            p,
+                        )
         # Determine if we should plot color parameters
         if isinstance(plot_color_params, bool):
             plot_color_params = [plot_color_params] * len(color_params)
@@ -734,7 +794,9 @@ class ChainConsumer(object):
             else:
                 if num_chains > len(self._all_colours):
                     num_needed_colours = np.sum([c is None for c in color_params])
-                    colour_list = self.color_finder.get_colormap(num_needed_colours, "inferno")
+                    colour_list = self.color_finder.get_colormap(
+                        num_needed_colours, "inferno"
+                    )
                 else:
                     colour_list = self._all_colours
                 colors = []
@@ -800,19 +862,29 @@ class ChainConsumer(object):
                 shade_alpha = 1.0 / np.sqrt(num_chains)
         # Decrease the shading amount if there are colour scatter points
         if isinstance(shade_alpha, float) or isinstance(shade_alpha, int):
-            shade_alpha = [shade_alpha if c is None else 0.25 * shade_alpha for c in color_params]
+            shade_alpha = [
+                shade_alpha if c is None else 0.25 * shade_alpha for c in color_params
+            ]
 
         if shade_gradient is None:
             shade_gradient = 1.0
         if isinstance(shade_gradient, float):
             shade_gradient = [shade_gradient] * num_chains
         elif isinstance(shade_gradient, list):
-            assert len(shade_gradient) == num_chains, "Have %d shade_gradient but % chains" % (len(shade_gradient), num_chains,)
+            assert (
+                len(shade_gradient) == num_chains
+            ), "Have %d shade_gradient but % chains" % (
+                len(shade_gradient),
+                num_chains,
+            )
 
         contour_over_points = num_chains < 20
 
         if plot_contour is None:
-            plot_contour = [contour_over_points if chain.posterior is not None else True for chain in self.chains]
+            plot_contour = [
+                contour_over_points if chain.posterior is not None else True
+                for chain in self.chains
+            ]
         elif isinstance(plot_contour, bool):
             plot_contour = [plot_contour] * num_chains
 
@@ -865,10 +937,17 @@ class ChainConsumer(object):
         sigmas = np.sort(sigmas)
 
         if contour_labels is not None:
-            assert isinstance(contour_labels, str), "contour_labels parameter should be a string"
+            assert isinstance(
+                contour_labels, str
+            ), "contour_labels parameter should be a string"
             contour_labels = contour_labels.lower()
-            assert contour_labels in ["sigma", "confidence",], "contour_labels should be either sigma or confidence"
-        assert isinstance(contour_label_font_size, int) or isinstance(contour_label_font_size, float), "contour_label_font_size needs to be numeric"
+            assert contour_labels in [
+                "sigma",
+                "confidence",
+            ], "contour_labels should be either sigma or confidence"
+        assert isinstance(contour_label_font_size, int) or isinstance(
+            contour_label_font_size, float
+        ), "contour_label_font_size needs to be numeric"
 
         if legend_artists is None:
             legend_artists = len(set(linestyles)) > 1 or len(set(linewidths)) > 1
@@ -905,9 +984,15 @@ class ChainConsumer(object):
             watermark_text_kwargs = {}
         watermark_text_kwargs_default.update(watermark_text_kwargs)
 
-        assert isinstance(summary_area, float), "summary_area needs to be a float, not %s!" % type(summary_area)
-        assert summary_area > 0, "summary_area should be a positive number, instead is %s!" % summary_area
-        assert summary_area < 1, "summary_area must be less than unity, instead is %s!" % summary_area
+        assert isinstance(
+            summary_area, float
+        ), "summary_area needs to be a float, not %s!" % type(summary_area)
+        assert summary_area > 0, (
+            "summary_area should be a positive number, instead is %s!" % summary_area
+        )
+        assert summary_area < 1, (
+            "summary_area must be less than unity, instead is %s!" % summary_area
+        )
         assert isinstance(global_point, bool), "global_point should be a bool"
 
         # List options
@@ -920,21 +1005,35 @@ class ChainConsumer(object):
                 c.update_unset_config("cloud", cloud[i], override=explicit)
                 c.update_unset_config("shade", shade[i], override=explicit)
                 c.update_unset_config("shade_alpha", shade_alpha[i], override=explicit)
-                c.update_unset_config("shade_gradient", shade_gradient[i], override=explicit)
+                c.update_unset_config(
+                    "shade_gradient", shade_gradient[i], override=explicit
+                )
                 c.update_unset_config("bar_shade", bar_shade[i], override=explicit)
                 c.update_unset_config("bins", bins[i], override=explicit)
                 c.update_unset_config("kde", kde[i], override=explicit)
                 c.update_unset_config("smooth", smooth[i], override=explicit)
-                c.update_unset_config("color_params", color_params[i], override=explicit)
-                c.update_unset_config("plot_color_params", plot_color_params[i], override=explicit)
+                c.update_unset_config(
+                    "color_params", color_params[i], override=explicit
+                )
+                c.update_unset_config(
+                    "plot_color_params", plot_color_params[i], override=explicit
+                )
                 c.update_unset_config("cmap", cmaps[i], override=explicit)
                 c.update_unset_config("num_cloud", num_cloud[i], override=explicit)
-                c.update_unset_config("marker_style", marker_style[i], override=explicit)
+                c.update_unset_config(
+                    "marker_style", marker_style[i], override=explicit
+                )
                 c.update_unset_config("marker_size", marker_size[i], override=explicit)
-                c.update_unset_config("marker_alpha", marker_alpha[i], override=explicit)
-                c.update_unset_config("plot_contour", plot_contour[i], override=explicit)
+                c.update_unset_config(
+                    "marker_alpha", marker_alpha[i], override=explicit
+                )
+                c.update_unset_config(
+                    "plot_contour", plot_contour[i], override=explicit
+                )
                 c.update_unset_config("plot_point", plot_point[i], override=explicit)
-                c.update_unset_config("show_as_1d_prior", show_as_1d_prior[i], override=explicit)
+                c.update_unset_config(
+                    "show_as_1d_prior", show_as_1d_prior[i], override=explicit
+                )
                 c.update_unset_config("zorder", zorder[i], override=explicit)
                 c.config["summary_area"] = summary_area
 
@@ -973,7 +1072,7 @@ class ChainConsumer(object):
         return self
 
     def configure_truth(self, **kwargs):  # pragma: no cover
-        r""" Configure the arguments passed to the ``axvline`` and ``axhline``
+        r"""Configure the arguments passed to the ``axvline`` and ``axhline``
         methods when plotting truth values.
 
         If you do not call this explicitly, the :func:`plot` method will
@@ -1034,12 +1133,16 @@ class ChainConsumer(object):
 
         for index in indexes:
             chain = self.chains[index]
-            assert chain.walkers is not None, "The chain you have selected was not added with any walkers!"
+            assert (
+                chain.walkers is not None
+            ), "The chain you have selected was not added with any walkers!"
             num_walkers = chain.walkers
             data = np.split(chain.chain, num_walkers)
             ws = np.split(chain.weights, num_walkers)
             for j, (c, w) in enumerate(zip(data, ws)):
-                con.add_chain(c, weights=w, name="Chain %d" % j, parameters=chain.parameters)
+                con.add_chain(
+                    c, weights=w, name="Chain %d" % j, parameters=chain.parameters
+                )
         return con
 
     def _get_chain(self, chain):
@@ -1064,61 +1167,91 @@ class ChainConsumer(object):
 
     # Deprecated methods
     def plot(self, *args, **kwargs):  # pragma: no cover
-        print("This method is deprecated. Please use chainConsumer.plotter.plot instead")
+        print(
+            "This method is deprecated. Please use chainConsumer.plotter.plot instead"
+        )
         return self.plotter.plot(*args, **kwargs)
 
     def plot_walks(self, *args, **kwargs):  # pragma: no cover
-        print("This method is deprecated. Please use chainConsumer.plotter.plot_walks instead")
+        print(
+            "This method is deprecated. Please use chainConsumer.plotter.plot_walks instead"
+        )
         return self.plotter.plot_walks(*args, **kwargs)
 
     def get_latex_table(self, *args, **kwargs):  # pragma: no cover
-        print("This method is deprecated. Please use chainConsumer.analysis.get_latex_table instead")
+        print(
+            "This method is deprecated. Please use chainConsumer.analysis.get_latex_table instead"
+        )
         return self.analysis.get_latex_table(*args, **kwargs)
 
     def get_parameter_text(self, *args, **kwargs):  # pragma: no cover
-        print("This method is deprecated. Please use chainConsumer.analysis.get_parameter_text instead")
+        print(
+            "This method is deprecated. Please use chainConsumer.analysis.get_parameter_text instead"
+        )
         return self.analysis.get_parameter_text(*args, **kwargs)
 
     def get_summary(self, *args, **kwargs):  # pragma: no cover
-        print("This method is deprecated. Please use chainConsumer.analysis.get_summary instead")
+        print(
+            "This method is deprecated. Please use chainConsumer.analysis.get_summary instead"
+        )
         return self.analysis.get_summary(*args, **kwargs)
 
     def get_correlations(self, *args, **kwargs):  # pragma: no cover
-        print("This method is deprecated. Please use chainConsumer.analysis.get_correlations instead")
+        print(
+            "This method is deprecated. Please use chainConsumer.analysis.get_correlations instead"
+        )
         return self.analysis.get_correlations(*args, **kwargs)
 
     def get_correlation_table(self, *args, **kwargs):  # pragma: no cover
-        print("This method is deprecated. Please use chainConsumer.analysis.get_correlation_table instead")
+        print(
+            "This method is deprecated. Please use chainConsumer.analysis.get_correlation_table instead"
+        )
         return self.analysis.get_correlation_table(*args, **kwargs)
 
     def get_covariance(self, *args, **kwargs):  # pragma: no cover
-        print("This method is deprecated. Please use chainConsumer.analysis.get_covariance instead")
+        print(
+            "This method is deprecated. Please use chainConsumer.analysis.get_covariance instead"
+        )
         return self.analysis.get_covariance(*args, **kwargs)
 
     def get_covariance_table(self, *args, **kwargs):  # pragma: no cover
-        print("This method is deprecated. Please use chainConsumer.analysis.get_covariance_table instead")
+        print(
+            "This method is deprecated. Please use chainConsumer.analysis.get_covariance_table instead"
+        )
         return self.analysis.get_covariance_table(*args, **kwargs)
 
     def diagnostic_gelman_rubin(self, *args, **kwargs):  # pragma: no cover
-        print("This method is deprecated. Please use chainConsumer.diagnostic.gelman_rubin instead")
+        print(
+            "This method is deprecated. Please use chainConsumer.diagnostic.gelman_rubin instead"
+        )
         return self.diagnostic.gelman_rubin(*args, **kwargs)
 
     def diagnostic_geweke(self, *args, **kwargs):  # pragma: no cover
-        print("This method is deprecated. Please use chainConsumer.diagnostic.geweke instead")
+        print(
+            "This method is deprecated. Please use chainConsumer.diagnostic.geweke instead"
+        )
         return self.diagnostic.geweke(*args, **kwargs)
 
     def comparison_aic(self):  # pragma: no cover
-        print("This method is deprecated. Please use chainConsumer.comparison.aic instead")
+        print(
+            "This method is deprecated. Please use chainConsumer.comparison.aic instead"
+        )
         return self.comparison.aic()
 
     def comparison_bic(self):  # pragma: no cover
-        print("This method is deprecated. Please use chainConsumer.comparison.bic instead")
+        print(
+            "This method is deprecated. Please use chainConsumer.comparison.bic instead"
+        )
         return self.comparison.bic()
 
     def comparison_dic(self):  # pragma: no cover
-        print("This method is deprecated. Please use chainConsumer.comparison.dic instead")
+        print(
+            "This method is deprecated. Please use chainConsumer.comparison.dic instead"
+        )
         return self.comparison.dic()
 
     def comparison_table(self, *args, **kwargs):  # pragma: no cover
-        print("This method is deprecated. Please use chainConsumer.comparison.comparison_table instead")
+        print(
+            "This method is deprecated. Please use chainConsumer.comparison.comparison_table instead"
+        )
         return self.comparison.comparison_table(*args, **kwargs)

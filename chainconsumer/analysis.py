@@ -2,16 +2,28 @@
 import logging
 import numpy as np
 from scipy.integrate import simps
+from scipy.signal import fftconvolve
 from scipy.interpolate import interp1d
-from scipy.ndimage.filters import gaussian_filter
 
-from .helpers import get_smoothed_bins, get_grid_bins, get_latex_table_frame
-from .kde import MegKDE
+from .helpers import (
+    get_smoothed_bins,
+    get_grid_bins,
+    get_latex_table_frame,
+    std_weight,
+    get_extents,
+)
 
 
 class Analysis(object):
 
-    summaries = ["max", "mean", "cumulative", "max_symmetric", "max_shortest", "max_central"]
+    summaries = [
+        "max",
+        "mean",
+        "cumulative",
+        "max_symmetric",
+        "max_shortest",
+        "max_central",
+    ]
 
     def __init__(self, parent):
         self.parent = parent
@@ -27,9 +39,16 @@ class Analysis(object):
         }
 
     def get_latex_table(
-        self, parameters=None, transpose=False, caption=None, label="tab:model_params", hlines=True, blank_fill="--", filename=None
+        self,
+        parameters=None,
+        transpose=False,
+        caption=None,
+        label="tab:model_params",
+        hlines=True,
+        blank_fill="--",
+        filename=None,
     ):  # pragma: no cover
-        """ Generates a LaTeX table from parameter summaries.
+        """Generates a LaTeX table from parameter summaries.
 
         Parameters
         ----------
@@ -63,7 +82,9 @@ class Analysis(object):
         elif isinstance(parameters, int):
             parameters = self.parent._all_parameters[:parameters]
         for p in parameters:
-            assert isinstance(p, str), "Generating a LaTeX table requires all parameters have labels"
+            assert isinstance(
+                p, str
+            ), "Generating a LaTeX table requires all parameters have labels"
         num_parameters = len(parameters)
         chains = self.parent.get_mcmc_chains()
         num_chains = len(chains)
@@ -84,7 +105,9 @@ class Analysis(object):
         if hlines:
             center_text += hline_text + "\t\t"
         if transpose:
-            center_text += " & ".join(["Parameter"] + [c.name for c in chains]) + end_text
+            center_text += (
+                " & ".join(["Parameter"] + [c.name for c in chains]) + end_text
+            )
             if hlines:
                 center_text += "\t\t" + hline_text
             for p in parameters:
@@ -118,7 +141,7 @@ class Analysis(object):
         return final_text
 
     def get_summary(self, squeeze=True, parameters=None, chains=None):
-        """  Gets a summary of the marginalised parameter distributions.
+        """Gets a summary of the marginalised parameter distributions.
 
         Parameters
         ----------
@@ -143,7 +166,11 @@ class Analysis(object):
             if isinstance(chains, (int, str)):
                 chains = [chains]
             if isinstance(chains[0], (int, str)):
-                chains = [self.parent.chains[i] for c in chains for i in self.parent._get_chain(c)]
+                chains = [
+                    self.parent.chains[i]
+                    for c in chains
+                    for i in self.parent._get_chain(c)
+                ]
 
         for chain in chains:
             res = {}
@@ -159,8 +186,8 @@ class Analysis(object):
         return results
 
     def get_max_posteriors(self, parameters=None, squeeze=True, chains=None):
-        """  Gets the maximum posterior point in parameter space from the passed parameters.
-        
+        """Gets the maximum posterior point in parameter space from the passed parameters.
+
         Requires the chains to have set `posterior` values.
 
         Parameters
@@ -186,7 +213,9 @@ class Analysis(object):
         else:
             if isinstance(chains, (int, str)):
                 chains = [chains]
-            chains = [self.parent.chains[i] for c in chains for i in self.parent._get_chain(c)]
+            chains = [
+                self.parent.chains[i] for c in chains for i in self.parent._get_chain(c)
+            ]
 
         if isinstance(parameters, str):
             parameters = [parameters]
@@ -256,7 +285,9 @@ class Analysis(object):
                 2D covariance matrix.
         """
         index = self.parent._get_chain(chain)
-        assert len(index) == 1, "Please specify only one chain, have %d chains" % len(index)
+        assert len(index) == 1, "Please specify only one chain, have %d chains" % len(
+            index
+        )
         chain = self.parent.chains[index[0]]
         if parameters is None:
             parameters = chain.parameters
@@ -266,7 +297,13 @@ class Analysis(object):
 
         return parameters, cov
 
-    def get_correlation_table(self, chain=0, parameters=None, caption="Parameter Correlations", label="tab:parameter_correlations"):
+    def get_correlation_table(
+        self,
+        chain=0,
+        parameters=None,
+        caption="Parameter Correlations",
+        label="tab:parameter_correlations",
+    ):
         """
         Gets a LaTeX table of parameter correlations.
 
@@ -290,7 +327,13 @@ class Analysis(object):
         parameters, cor = self.get_correlations(chain=chain, parameters=parameters)
         return self._get_2d_latex_table(parameters, cor, caption, label)
 
-    def get_covariance_table(self, chain=0, parameters=None, caption="Parameter Covariance", label="tab:parameter_covariance"):
+    def get_covariance_table(
+        self,
+        chain=0,
+        parameters=None,
+        caption="Parameter Covariance",
+        label="tab:parameter_covariance",
+    ):
         """
         Gets a LaTeX table of parameter covariance.
 
@@ -315,34 +358,98 @@ class Analysis(object):
         return self._get_2d_latex_table(parameters, cov, caption, label)
 
     def _get_smoothed_histogram(self, chain, parameter, pad=False):
+        """Generate a smooth estimate of a 1D PDF from some samples using
+        Kernel Density Estimation, correcting at the boundaries. (follows Joe
+        Zuntz's cosmosis/density.py and getdist/mcsamples.py)
+        """
+        weights = chain.weights
         data = chain.get_data(parameter)
-        smooth = chain.config["smooth"]
+        neff = np.sum(weights) ** 2 / np.sum(weights**2)
+        stdev = std_weight(data, weights)
+
+        # This is a standard factor for 1D KDEs
+        scott_factor = neff ** (-0.2)
+
+        # We optionally allow user-defined additional smoothing to the optimal
+        # smoothing
+        width = stdev * scott_factor * neff ** (1.0 / 5 - 1.0 / (4 * 1 + 5))
+        # width = np.nanmin([width, 1.12])
+
         if chain.grid:
-            bins = get_grid_bins(data)
+            edges = get_grid_bins(data)
+            N = len(edges) - 1
         else:
-            bins = chain.config["bins"]
-            bins, smooth = get_smoothed_bins(smooth, bins, data, chain.weights, pad=pad)
+            minv, maxv = get_extents(data, weights, pad=pad)
+            # if "eta" in parameter:
+            #     minv = -6
+            #     maxv = 6
+            N = 1024
+            edges = np.linspace(minv, maxv, N + 1)
 
-        hist, edges = np.histogram(data, bins=bins, density=True, weights=chain.weights)
-        if chain.power is not None:
-            hist = hist ** chain.power
-        edge_centers = 0.5 * (edges[1:] + edges[:-1])
-        xs = np.linspace(edge_centers[0], edge_centers[-1], 10000)
+        x = 0.5 * (edges[1:] + edges[:-1])
+        hist, _ = np.histogram(data, bins=edges, density=True, weights=weights)
+        w = edges[1] - edges[0]
+        # smoothing scale in units of the bin width
+        s = width / w
 
-        if smooth:
-            hist = gaussian_filter(hist, smooth, mode=self.parent._gauss_mode)
-        kde = chain.config["kde"]
-        if kde:
-            kde_xs = np.linspace(edge_centers[0], edge_centers[-1], max(200, int(bins.max())))
-            ys = MegKDE(data, chain.weights, factor=kde).evaluate(kde_xs)
-            area = simps(ys, x=kde_xs)
-            ys = ys / area
-            ys = interp1d(kde_xs, ys, kind="linear")(xs)
-        else:
-            ys = interp1d(edge_centers, hist, kind="linear")(xs)
-        cs = ys.cumsum()
+        # Make the Gaussian kernel with which we are convolving.
+        # We go out to 3 sigma
+        window_width = min(max(1, int(2.5 * s)), N // 2 - 2)
+        window_x = np.arange(-window_width, window_width + 1)
+        kernel = np.exp(-0.5 * (window_x / s) ** 2)
+
+        # Generate the smoothed version.  If we do not need
+        # the boundary smoothing then this is our final output
+        P_smooth = fftconvolve(hist, kernel, "same")
+        P_final = P_smooth / P_smooth.sum() * (x[1] - x[0])
+
+        fix_boundary = True
+        fix_bias = True
+        if fix_boundary:
+            # Generate the mask, a top-hat which cuts off where the
+            # boundaries are
+            full_width = N + 2 * window_width
+            mask = np.ones(full_width)
+            mask[:window_width] = 0
+            mask[window_width] = 0.5
+            mask[-window_width:] = 0
+            mask[-(window_width + 1)] = 0.5
+
+            # Linear boundary kernel correction Jones 1993 Jones and Foster 1996
+            # implemented according to getdist/mcsamples.py
+            a0 = fftconvolve(mask, kernel, "valid")
+
+            # Avoid a divide-by-zero
+            ix = np.nonzero(a0 * P_smooth)
+            a0 = a0[ix]
+            P_norm = P_smooth[ix] / a0
+            xK = window_x * kernel
+            x2K = xK * window_x
+            a1 = fftconvolve(mask, xK, mode="valid")[ix]
+            a2 = fftconvolve(mask, x2K, mode="valid")[ix]
+            xP = fftconvolve(hist, xK, mode="same")[ix]
+
+            # Apply the correction
+            scaling = (P_smooth[ix] * a2 - xP * a1) / (a0 * a2 - a1**2)
+            P_final = P_smooth.copy()
+            P_final[ix] = P_norm * np.exp(np.minimum(scaling / P_norm, 4) - 1)
+        # Normalize and return
+        P_final /= P_final.sum() * (x[1] - x[0])
+        if fix_bias:
+            mask = np.ones(N)
+            mask[0] = 0.5
+            mask[-1] = 0.5
+            a0 = fftconvolve(mask, kernel, "same")
+
+            tmp = P_final.copy()
+            tmp[tmp == 0] = 1
+            fine = hist / tmp
+            conv = fftconvolve(fine, kernel, "same")
+            P_final = P_final * conv / a0
+
+        cs = P_final.cumsum()
         cs /= cs.max()
-        return xs, ys, cs
+        return x, P_final, cs
 
     def _get_2d_latex_table(self, parameters, matrix, caption, label):
         latex_table = get_latex_table_frame(caption=caption, label=label)
@@ -363,7 +470,7 @@ class Analysis(object):
         return latex_table % (column_def, table)
 
     def get_parameter_text(self, lower, maximum, upper, wrap=False):
-        """ Generates LaTeX appropriate text from marginalised parameter bounds.
+        """Generates LaTeX appropriate text from marginalised parameter bounds.
 
         Parameters
         ----------
@@ -386,7 +493,10 @@ class Analysis(object):
         upper_error = upper - maximum
         lower_error = maximum - lower
         if upper_error != 0 and lower_error != 0:
-            resolution = min(np.floor(np.log10(np.abs(upper_error))), np.floor(np.log10(np.abs(lower_error))))
+            resolution = min(
+                np.floor(np.log10(np.abs(upper_error))),
+                np.floor(np.log10(np.abs(lower_error))),
+            )
         elif upper_error == 0 and lower_error != 0:
             resolution = np.floor(np.log10(np.abs(lower_error)))
         elif upper_error != 0 and lower_error == 0:
@@ -410,18 +520,18 @@ class Analysis(object):
         elif resolution == -2:
             fmt = "%0.3f"
             r = 3
-        upper_error *= 10 ** factor
-        lower_error *= 10 ** factor
-        maximum *= 10 ** factor
+        upper_error *= 10**factor
+        lower_error *= 10**factor
+        maximum *= 10**factor
         upper_error = round(upper_error, r)
         lower_error = round(lower_error, r)
         maximum = round(maximum, r)
         if maximum == -0.0:
             maximum = 0.0
         if resolution == 2:
-            upper_error *= 10 ** -factor
-            lower_error *= 10 ** -factor
-            maximum *= 10 ** -factor
+            upper_error *= 10**-factor
+            lower_error *= 10**-factor
+            maximum *= 10**-factor
             factor = 0
             fmt = "%0.0f"
         upper_error_text = fmt % upper_error
@@ -429,7 +539,11 @@ class Analysis(object):
         if upper_error_text == lower_error_text:
             text = r"%s\pm %s" % (fmt, "%s") % (maximum, lower_error_text)
         else:
-            text = r"%s^{+%s}_{-%s}" % (fmt, "%s", "%s") % (maximum, upper_error_text, lower_error_text)
+            text = (
+                r"%s^{+%s}_{-%s}"
+                % (fmt, "%s", "%s")
+                % (maximum, upper_error_text, lower_error_text)
+            )
         if factor != 0:
             text = r"\left( %s \right) \times 10^{%d}" % (text, -factor)
         if wrap:
@@ -488,7 +602,10 @@ class Analysis(object):
                 elif area > desired_area:
                     minVal = mid
             except ValueError:
-                self._logger.warning("Parameter %s in chain %s is not constrained" % (parameter, chain.name))
+                self._logger.warning(
+                    "Parameter %s in chain %s is not constrained"
+                    % (parameter, chain.name)
+                )
                 return [None, xs[startIndex], None]
 
         return [x1, xs[startIndex], x2]
