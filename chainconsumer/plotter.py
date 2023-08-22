@@ -1524,9 +1524,9 @@ class Plotter(object):
         title_size = self.parent.config["label_font_size"]
         chain_row = chain.get_data(parameter)
         weights = chain.weights
-        if smooth or kde:
+        if smooth:
             xs, ys, _ = self.parent.analysis._get_smoothed_histogram(
-                chain, parameter, pad=True
+                chain, parameter,
             )
             # xs_nopad, _, _ = self.parent.analysis._get_smoothed_histogram(
             #     chain, parameter, pad=False

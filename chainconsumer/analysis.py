@@ -6,7 +6,6 @@ from scipy.signal import fftconvolve
 from scipy.interpolate import interp1d
 
 from .helpers import (
-    get_smoothed_bins,
     get_grid_bins,
     get_latex_table_frame,
     std_weight,
@@ -357,7 +356,7 @@ class Analysis(object):
         parameters, cov = self.get_covariance(chain=chain, parameters=parameters)
         return self._get_2d_latex_table(parameters, cov, caption, label)
 
-    def _get_smoothed_histogram(self, chain, parameter, pad=False):
+    def _get_smoothed_histogram(self, chain, parameter):
         """Generate a smooth estimate of a 1D PDF from some samples using
         Kernel Density Estimation, correcting at the boundaries. (follows Joe
         Zuntz's cosmosis/density.py and getdist/mcsamples.py)
@@ -372,17 +371,13 @@ class Analysis(object):
 
         # We optionally allow user-defined additional smoothing to the optimal
         # smoothing
-        width = stdev * scott_factor * neff ** (1.0 / 5 - 1.0 / (4 * 1 + 5))
-        # width = np.nanmin([width, 1.12])
+        width = 1.06 * stdev * scott_factor * neff ** (1.0 / 5 - 1.0 / (4 * 1 + 5))
 
         if chain.grid:
             edges = get_grid_bins(data)
             N = len(edges) - 1
         else:
-            minv, maxv = get_extents(data, weights, pad=pad)
-            # if "eta" in parameter:
-            #     minv = -6
-            #     maxv = 6
+            minv, maxv = get_extents(data, weights)
             N = 1024
             edges = np.linspace(minv, maxv, N + 1)
 
@@ -403,9 +398,8 @@ class Analysis(object):
         P_smooth = fftconvolve(hist, kernel, "same")
         P_final = P_smooth / P_smooth.sum() * (x[1] - x[0])
 
-        fix_boundary = True
-        fix_bias = True
-        if fix_boundary:
+        correct_boundary = chain.config["correct_boundary"]
+        if correct_boundary:
             # Generate the mask, a top-hat which cuts off where the
             # boundaries are
             full_width = N + 2 * window_width
@@ -433,9 +427,9 @@ class Analysis(object):
             scaling = (P_smooth[ix] * a2 - xP * a1) / (a0 * a2 - a1**2)
             P_final = P_smooth.copy()
             P_final[ix] = P_norm * np.exp(np.minimum(scaling / P_norm, 4) - 1)
-        # Normalize and return
-        P_final /= P_final.sum() * (x[1] - x[0])
-        if fix_bias:
+
+        correct_multbias = chain.config["correct_multbias"]
+        if correct_multbias:
             mask = np.ones(N)
             mask[0] = 0.5
             mask[-1] = 0.5
@@ -446,6 +440,9 @@ class Analysis(object):
             fine = hist / tmp
             conv = fftconvolve(fine, kernel, "same")
             P_final = P_final * conv / a0
+
+        # Normalize and return
+        P_final /= P_final.sum() * (x[1] - x[0])
 
         cs = P_final.cumsum()
         cs /= cs.max()

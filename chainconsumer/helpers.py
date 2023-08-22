@@ -31,7 +31,7 @@ def std_weight(x, w):
     return np.sqrt((w * r**2).sum() / w.sum())
 
 
-def get_extents(data, weight, plot=False, wide_extents=True, tiny=False, pad=False):
+def get_extents(data, weight, plot=False, wide_extents=True, tiny=False):
     """estimate boundary of the data. The two ends of the boundary is defined
     as 1e-4 or 1e-5 of the cdf and 1-cdf, respectively.
     Parameters:
@@ -54,10 +54,11 @@ def get_extents(data, weight, plot=False, wide_extents=True, tiny=False, pad=Fal
     i2 = np.where(icdf > threshold)[0][0]
     lower = bc[i1]
     upper = bc[-i2]
-    if pad:
-        width = upper - lower
-        lower -= 0.1 * width
-        upper += 0.1 * width
+    # zero padding
+    width = upper - lower
+    lower -= 0.2 * width
+    upper += 0.2 * width
+    # set upper and lower limits should not go beyond top-hat prior range
     lower = max(lower, np.min(data))
     upper = min(upper, np.max(data))
     return lower, upper
@@ -77,7 +78,7 @@ def get_bins(chains):
 def get_smoothed_bins(
     smooth, bins, data, weight, marginalised=True, plot=False, pad=False
 ):
-    minv, maxv = get_extents(data, weight, plot=plot, pad=pad)
+    minv, maxv = get_extents(data, weight, plot=plot)
     if smooth is None or not smooth or smooth == 0:
         return np.linspace(minv, maxv, int(bins)), 0
     else:

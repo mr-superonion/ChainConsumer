@@ -80,7 +80,7 @@ class ChainConsumer(object):
         shade_gradient=None,
         bar_shade=None,
         bins=None,
-        smooth=1,
+        smooth=True,
         color_params=None,
         plot_color_params=None,
         cmap=None,
@@ -174,7 +174,7 @@ class ChainConsumer(object):
             that giving ``bins=1.5`` will result in using :math:`\frac{1.5\sqrt{n}}{10}` bins.
             Note this parameter is most useful if `kde=False` is also passed, so you
             can actually see the bins and not a KDE.
-        smooth :  int|float, optional
+        smooth :  bool|int|float, optional
             The smoothing factor
         color_params : str, optional
             The name of the parameter to use for the colour scatter. Defaults to none, for no colour. If set
@@ -481,7 +481,7 @@ class ChainConsumer(object):
         linestyles=None,
         linewidths=None,
         kde=False,
-        smooth=1,
+        smooth=True,
         cloud=None,
         shade=None,
         shade_alpha=None,
@@ -514,6 +514,8 @@ class ChainConsumer(object):
         zorder=None,
         stack=False,
         norm_max=False,
+        correct_boundary=True,
+        correct_multbias=True,
     ):  # pragma: no cover
         r"""Configure the general plotting parameters common across the bar
         and contour plots.
@@ -582,7 +584,7 @@ class ChainConsumer(object):
             distribution is highly non-gaussian. Due to the slowness of performing a
             KDE on all data, it is often useful to disable this before producing final
             plots. If float, scales the width of the KDE bandpass manually.
-        smooth : int|list[int], optional
+        smooth : bool|int|list[int], optional
             Defaults to 3. How much to smooth the marginalised distributions using a gaussian filter.
             If ``kde`` is set to true, this parameter is ignored. Setting it to either
             ``0``, ``False`` disables smoothing. For grid data, smoothing
@@ -668,6 +670,10 @@ class ChainConsumer(object):
             The zorder to pass to `matplotlib` to determine visual ordering when plotting.
         norm_max: bool, optional
             Wether normalize the maximum to 1
+        correct_boundary: bool, optional
+            Wether correct for bundary effect
+        correct_multbias: bool, optional
+            Wether correct for multiplicative bias
 
         Returns
         -------
@@ -905,7 +911,7 @@ class ChainConsumer(object):
 
         if marker_size is None:
             marker_size = [20] * num_chains
-        elif isinstance(marker_style, (int, float)):
+        elif isinstance(marker_size, (int, float)):
             marker_size = [marker_size] * num_chains
 
         if marker_alpha is None:
@@ -1067,6 +1073,8 @@ class ChainConsumer(object):
         self.config["watermark_text_kwargs"] = watermark_text_kwargs_default
         self.config["global_point"] = global_point
         self.config["norm_max"] = norm_max
+        self.config["correct_boundary"] = correct_boundary
+        self.config["correct_multbias"] = correct_multbias
 
         self._configured = True
         return self
