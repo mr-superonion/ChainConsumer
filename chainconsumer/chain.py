@@ -46,6 +46,8 @@ class Chain(object):
         marker_alpha=None,
         zorder=None,
         shift_params=None,
+        correct_boundary=True,
+        correct_multbias=True,
     ):
         self.chain = chain
         self.parameters = parameters
@@ -118,6 +120,8 @@ class Chain(object):
             marker_size=marker_size,
             marker_alpha=marker_alpha,
             zorder=zorder,
+            correct_boundary=correct_boundary,
+            correct_multbias=correct_multbias,
         )
         self.validate_chain()
         self.validated_params = set()
@@ -147,6 +151,8 @@ class Chain(object):
         plot_point=False,
         show_as_1d_prior=False,
         zorder=None,
+        correct_boundary=True,
+        correct_multbias=True,
     ):
 
         if statistics is not None:
@@ -186,6 +192,8 @@ class Chain(object):
         self._validate_config("plot_point", plot_point, bool)
         self._validate_config("show_as_1d_prior", show_as_1d_prior, bool)
         self._validate_config("zorder", zorder, int)
+        self._validate_config("correct_boundary", correct_boundary, bool)
+        self._validate_config("correct_multbias", correct_multbias, bool)
 
     def update_unset_config(self, name, value, override=None):
         if (override is not None and name in override) or self.config.get(name) is None:

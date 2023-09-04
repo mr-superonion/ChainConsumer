@@ -698,7 +698,7 @@ class Plotter(object):
             figsize = 1.0
         if isinstance(figsize, float):
             figsize_float = figsize
-            figsize = (num_cols * 2 * figsize, num_rows * 2 * figsize)
+            figsize = (num_cols * 1.8 * figsize, num_rows * 2.5 * figsize)
         else:
             figsize_float = 1.0
 
@@ -711,13 +711,13 @@ class Plotter(object):
         if summary is None:
             summary = len(self.parent.chains) == 1
 
-        hspace = (0.8 if summary else 0.5) / figsize_float
         fig, axes = plt.subplots(
             nrows=num_rows, ncols=num_cols, figsize=figsize, squeeze=False
         )
-        fig.subplots_adjust(
-            left=0.1, right=0.95, top=0.95, bottom=0.1, wspace=0.05, hspace=hspace
-        )
+        # hspace = (0.8 if summary else 0.5) / figsize_float
+        # fig.subplots_adjust(
+        #     left=0.1, right=0.95, top=0.95, bottom=0.1, wspace=0.05, hspace=hspace
+        # )
 
         formatter = ScalarFormatter(useOffset=False)
         formatter.set_powerlimits((-3, 4))
@@ -742,19 +742,23 @@ class Plotter(object):
                 ax.xaxis.set_major_formatter(formatter)
             ax.set_xlim(extents.get(p) or self._get_parameter_extents(p, chains))
 
-            max_val = None
+            max_val = -1000.0
             for chain in chains:
                 if not chain.config["plot_contour"]:
                     continue
                 if p in chain.parameters:
                     param_summary = summary
                     m = self._plot_bars(ax, p, chain, summary=param_summary)
-                    if max_val is None or m > max_val:
+                    if m > max_val:
                         max_val = m
 
             self._add_truth(ax, truth, None, py=p)
             ax.set_ylim(0, 1.1 * max_val)
             ax.set_xlabel(p, fontsize=label_font_size)
+            if i // num_rows == 0:
+                ax.set_ylabel("PDF", fontsize=label_font_size)
+
+        fig.tight_layout()
 
         if filename is not None:
             if isinstance(filename, str):
@@ -1526,7 +1530,8 @@ class Plotter(object):
         weights = chain.weights
         if smooth:
             xs, ys, _ = self.parent.analysis._get_smoothed_histogram(
-                chain, parameter,
+                chain,
+                parameter,
             )
             # xs_nopad, _, _ = self.parent.analysis._get_smoothed_histogram(
             #     chain, parameter, pad=False

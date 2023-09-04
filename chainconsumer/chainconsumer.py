@@ -87,6 +87,8 @@ class ChainConsumer(object):
         num_cloud=None,
         zorder=None,
         shift_params=None,
+        correct_boundary=True,
+        correct_multbias=True,
     ):
         r"""Add a chain to the consumer.
 
@@ -338,6 +340,8 @@ class ChainConsumer(object):
             num_cloud=num_cloud,
             zorder=zorder,
             shift_params=shift_params,
+            correct_boundary=correct_boundary,
+            correct_multbias=correct_multbias,
         )
         self.chains.append(c)
         self._init_params()
@@ -514,8 +518,6 @@ class ChainConsumer(object):
         zorder=None,
         stack=False,
         norm_max=False,
-        correct_boundary=True,
-        correct_multbias=True,
     ):  # pragma: no cover
         r"""Configure the general plotting parameters common across the bar
         and contour plots.
@@ -1073,8 +1075,6 @@ class ChainConsumer(object):
         self.config["watermark_text_kwargs"] = watermark_text_kwargs_default
         self.config["global_point"] = global_point
         self.config["norm_max"] = norm_max
-        self.config["correct_boundary"] = correct_boundary
-        self.config["correct_multbias"] = correct_multbias
 
         self._configured = True
         return self

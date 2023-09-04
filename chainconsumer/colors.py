@@ -9,49 +9,47 @@ import numpy as np
 class Colors(object):
     def __init__(self):
         self.color_map = {
-            "blue": "#1976D2",
-            "lblue": "#4FC3F7",
-            "red": "#E53935",
-            "green": "#43A047",
-            "lgreen": "#8BC34A",
-            "purple": "#673AB7",
-            "cyan": "#4DD0E1",
-            "magenta": "#E91E63",
-            "yellow": "#F2D026",
-            "black": "#333333",
-            "grey": "#9E9E9E",
-            "orange": "#FB8C00",
-            "amber": "#FFB300",
-            "brown": "#795548",
+            "blue": "#252c8d",  # blue
+            "red": "#ac171f",  # red
+            "green": "#0e7003",  # green
+            "orange": "#ed611e",  # orange
+            "purple": "#9700ff",  # purple
+            "brown": "#ae7b26",  # brown
+            "pink": "#ff7d9c",  # pink
+            "magenta": "#c01e62",  # magenta
+            "grey": "#3d3d3d",  # grey
+            "yellow": "#fecc2e",  # yellow
+            "teal": "#52bcbc",  # teal
+            "oliver": "#7f7f00",  # olive
         }
         self.aliases = {
+            "k": "black",
             "b": "blue",
             "r": "red",
             "g": "green",
-            "k": "black",
-            "m": "magenta",
-            "c": "cyan",
             "o": "orange",
-            "y": "yellow",
-            "a": "amber",
             "p": "purple",
+            "m": "magenta",
             "e": "grey",
-            "lg": "lgreen",
-            "lb": "lblue",
+            "y": "yellow",
+            "t": "teal",
+            "br": "brown",
+            "pk": "pink",
+            "ol": "oliver",
         }
         self.default_colors = [
             "blue",
-            "lgreen",
             "red",
-            "purple",
-            "yellow",
-            "grey",
-            "lblue",
-            "magenta",
             "green",
-            "brown",
-            "black",
             "orange",
+            "purple",
+            "brown",
+            "pink",
+            "magenta",
+            "grey",
+            "yellow",
+            "teal",
+            "oliver",
         ]
 
     def format(self, color):

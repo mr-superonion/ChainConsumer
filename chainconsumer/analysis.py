@@ -398,7 +398,7 @@ class Analysis(object):
         P_smooth = fftconvolve(hist, kernel, "same")
         P_final = P_smooth / P_smooth.sum() * (x[1] - x[0])
 
-        correct_boundary = self.parent.config["correct_boundary"]
+        correct_boundary = chain.config["correct_boundary"]
         if correct_boundary:
             # Generate the mask, a top-hat which cuts off where the
             # boundaries are
@@ -428,7 +428,7 @@ class Analysis(object):
             P_final = P_smooth.copy()
             P_final[ix] = P_norm * np.exp(np.minimum(scaling / P_norm, 4) - 1)
 
-        correct_multbias = self.parent.config["correct_multbias"]
+        correct_multbias = chain.config["correct_multbias"]
         if correct_multbias:
             mask = np.ones(N)
             mask[0] = 0.5
